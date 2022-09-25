@@ -1,5 +1,5 @@
 import { FormEvent, useContext, useState } from "react";
-import { AuthContext } from "../Contexts/AuthContext";
+import { AuthContext } from "../contexts/AuthContext";
 import styles from "./Form.module.css";
 
 export const Form = () => {
