@@ -17,7 +17,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
           <Route exact path="/">
             <App />
           </Route>
-          <Route path="/Dashboard">
+          <Route path="/dashboard">
             <Dashboard />
           </Route>
         </Switch>

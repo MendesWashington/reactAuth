@@ -16,6 +16,7 @@ type SignInCredentials = {
 
 type AuthContextData = {
   signIn(credentials: SignInCredentials): Promise<void>;
+  signOut(): void;
   isAuthenticated: boolean;
   user: User;
 };
@@ -35,12 +36,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const token = localStorage.getItem("@authReact:token") || "";
 
     if (token) {
-      setUser({
-        email: "mendesswashington@gmail.com",
-        roles: ["Administrador", "Usuário"],
-        permissions: ["Administrador.editar, Usuário.editar"],
-      });
-      console.log("tem token");
+      //Adicionar api
+
+      api
+        .post("/me")
+        .then((reponse) => {
+          const { email, permissions, roles } = reponse.data;
+          setUser({ email, permissions, roles });
+        })
+        .catch(() => {
+          signOut();
+        });
+      // setUser({
+      //   email: "mendesswashington@gmail.com",
+      //   roles: ["Administrador", "Usuário"],
+      //   permissions: ["Administrador.editar, Usuário.editar"],
+      // });
+      // console.log("tem token");
     } else {
       console.log("Nao tem token");
     }
@@ -61,14 +73,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      history.push("/Dashboard");
+      history.push("/dashboard");
     } catch (error) {
       console.log(error);
     }
   }
+  function signOut() {
+    localStorage.removeItem("@authReact:token");
+    localStorage.removeItem("@authReact:refresh-token");
+    history.push("/");
+  }
 
   return (
-    <AuthContext.Provider value={{ signIn, isAuthenticated, user }}>
+    <AuthContext.Provider value={{ signIn, signOut, isAuthenticated, user }}>
       {children}
     </AuthContext.Provider>
   );
