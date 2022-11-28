@@ -37,9 +37,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (token) {
       //Adicionar api
-
       api
-        .post("/me")
+        .get("/me")
         .then((reponse) => {
           const { email, permissions, roles } = reponse.data;
           setUser({ email, permissions, roles });
@@ -47,33 +46,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
         .catch(() => {
           signOut();
         });
-      // setUser({
-      //   email: "mendesswashington@gmail.com",
-      //   roles: ["Administrador", "Usuário"],
-      //   permissions: ["Administrador.editar, Usuário.editar"],
-      // });
-      // console.log("tem token");
     } else {
       console.log("Nao tem token");
+      signOut();
     }
   }, []);
 
   async function signIn({ email, password }: SignInCredentials) {
     try {
-      const roles = ["Administrador", "Usuário"];
-      const permissions = ["Administrador.editar, Usuário.editar"];
-      const token = "asdfujsdnbfçlsdhnfosdfhnsldfkhnsdolf";
-      const refreshToken = "asdfpsuidgybfsd7pfujds";
-      console.log({ email, password });
+      api
+        .post("/sessions", { email, password })
+        .then((reponse) => {
+          const { token, refreshToken, permissions, roles } = reponse.data;
+          setUser({ email, permissions, roles });
+          localStorage.setItem("@authReact:token", token);
+          localStorage.setItem("@authReact:refresh-token", refreshToken);
 
-      localStorage.setItem("@authReact:token", token);
-      localStorage.setItem("@authReact:refresh-token", refreshToken);
+          setUser({ email, roles, permissions });
 
-      setUser({ email, roles, permissions });
+          api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-      history.push("/dashboard");
+          history.push("/dashboard");
+        })
+        .catch(() => {
+          signOut();
+        });
     } catch (error) {
       console.log(error);
     }

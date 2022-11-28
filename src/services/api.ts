@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
 
+import { useHistory } from "react-router-dom";
 
 
 interface ErrorResponse extends AxiosError {
@@ -12,13 +13,12 @@ interface IfailedRequestsQueueProps {
     onFailure: (error: AxiosError) => void;
 }
 
-let token = localStorage.getItem("@authReact-token");
+let token = localStorage.getItem("@authReact:token");
 let isRefreshing = false;
 let failedRequestsQueue: IfailedRequestsQueueProps[] = [];
 
-
 export const api = axios.create({
-    baseURL: 'http://localhost:4000',
+    baseURL: 'http://localhost:3333',
     headers: {
         Authorization: `Bearer ${token}`
     }
@@ -28,7 +28,9 @@ function signOut() {
     localStorage.removeItem("@authReact:token");
     localStorage.removeItem("@authReact:refresh-token");
     //redirecionar
-    
+    const history = useHistory();
+
+    history.push("/");
 }
 
 api.interceptors.response.use((response) => {
@@ -36,9 +38,10 @@ api.interceptors.response.use((response) => {
 }, (error: AxiosError<ErrorResponse>) => {
 
     if (error.response?.status === 401) {
-        if (error.code === '') {
+        console.log(error.response.data?.code)
+        if (error.response.data?.code === 'token.expired') {
             //renovar token
-            const refreshToken = localStorage.getItem("@authReact-refresh-token");
+            const refreshToken = localStorage.getItem("@authReact:refresh-token");
             const originalConfig = error.config;
             if (!isRefreshing) {
                 isRefreshing = true;
@@ -46,13 +49,16 @@ api.interceptors.response.use((response) => {
                 api.post('/refresh', {
                     refreshToken
                 }).then(response => {
-                    localStorage.setItem("@authReact:token", response.data?.token);
-                    localStorage.setItem("@authReact:refresh-token", response.data?.refreshToken);
-                    const newToken = `Bearer ${response.data?.token}`;
+                    const {
+                        token,
+                        refreshToken,
+                    } = response.data;
+                    localStorage.setItem("@authReact:token", token);
+                    localStorage.setItem("@authReact:refresh-token", refreshToken);
 
-                    api.defaults.headers.common["Authorization"] = newToken;
+                    api.defaults.headers.common["Authorization"] = token;
 
-                    failedRequestsQueue.forEach(request => request.onSuccess(newToken));
+                    failedRequestsQueue.forEach(request => request.onSuccess(token));
                     failedRequestsQueue = [];
                 }).catch(error => {
                     failedRequestsQueue.forEach(request => request.onFailure(error))
@@ -65,6 +71,7 @@ api.interceptors.response.use((response) => {
                 failedRequestsQueue.push({
                     onSuccess: (token: string) => {
                         if (originalConfig.headers != null) {
+                            console.log(originalConfig)
                             originalConfig.headers.Authorization = `Bearer ${token}`;
                         }
                         resolve(api(originalConfig))
